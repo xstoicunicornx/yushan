@@ -100,7 +100,9 @@
         </div>
 
         <div class="post-box">
-          <div class="post-label">Post Your CLI Output</div>
+          <div class="post-label">
+            Run: <code>cargo run -- keygen-round1 --threshold 2 --n-parties 3 --my-index &lt;your-index&gt;</code>
+          </div>
           <textarea
             class="post-textarea"
             id="round1-input"
@@ -120,9 +122,7 @@
           </div>
         </div>
         <div class="copy-section" id="round1-copy-section">
-          <div class="copy-label">
-            Aggregated Commitments (Space-separated JSON)
-          </div>
+          <div class="copy-label">Aggregated Commitments</div>
           <div class="copy-output" id="round1-output">No data yet</div>
           <button
             class="btn btn-secondary"
@@ -143,7 +143,9 @@
         </div>
 
         <div class="post-box">
-          <div class="post-label">Post Your CLI Output</div>
+          <div class="post-label">
+            Run: <code>cargo run -- keygen-round2 --my-index &lt;your-index&gt; --data '&lt;all-commitments&gt;'</code>
+          </div>
           <textarea
             class="post-textarea"
             id="round2-input"
@@ -163,7 +165,7 @@
           </div>
         </div>
         <div class="copy-section" id="round2-copy-section">
-          <div class="copy-label">Aggregated Shares (Space-separated JSON)</div>
+          <div class="copy-label">Aggregated Shares</div>
           <div class="copy-output" id="round2-output">No data yet</div>
           <button
             class="btn btn-secondary"
@@ -184,7 +186,9 @@
         </div>
 
         <div class="post-box">
-          <div class="post-label">Post Your CLI Output</div>
+          <div class="post-label">
+            Run: <code>cargo run -- sign-nonce --session "msg1"</code>
+          </div>
           <textarea
             class="post-textarea"
             id="nonce-input"
@@ -202,7 +206,7 @@
           <div class="empty-state">Waiting for signers to post nonces...</div>
         </div>
         <div class="copy-section" id="nonce-copy-section">
-          <div class="copy-label">Aggregated Nonces (Space-separated JSON)</div>
+          <div class="copy-label">Aggregated Nonces</div>
           <div class="copy-output" id="nonce-output">No data yet</div>
           <button
             class="btn btn-secondary"
@@ -221,7 +225,9 @@
         </div>
 
         <div class="post-box">
-          <div class="post-label">Post Your CLI Output</div>
+          <div class="post-label">
+            Run: <code>cargo run -- sign --session "msg1" --message "Hello!" --data '&lt;all-nonces&gt;'</code>
+          </div>
           <textarea
             class="post-textarea"
             id="sig-input"
@@ -241,9 +247,7 @@
           </div>
         </div>
         <div class="copy-section" id="sig-copy-section">
-          <div class="copy-label">
-            Aggregated Signature Shares (Space-separated JSON)
-          </div>
+          <div class="copy-label">Aggregated Signature Shares</div>
           <div class="copy-output" id="sig-output">No data yet</div>
           <button
             class="btn btn-secondary"
@@ -258,7 +262,7 @@
       <h1>Signature Verifier</h1>
       <div class="phase-section">
         <div class="phase-header">
-          <div class="phase-title">Verify a FROST Signature</div>
+          <div class="phase-title">Verify Schnorr Signature</div>
         </div>
 
         <div class="post-box">
@@ -285,13 +289,26 @@
             type="text"
             id="verify-message"
             placeholder="The message that was signed..."
-            style="width: 100%; padding: 10px; background: var(--bg-primary); border: 1px solid var(--secondary); color: var(--primary); border-radius: 15px;"
+            style="
+              width: 100%;
+              padding: 10px;
+              background: var(--bg-primary);
+              border: 1px solid var(--secondary);
+              color: var(--primary);
+              border-radius: 15px;
+            "
           />
         </div>
 
-        <button class="btn" onclick="verifySignature()">Verify Signature</button>
+        <button class="btn" onclick="verifySignature()">
+          Verify Signature
+        </button>
 
-        <div id="verify-output" class="entries-container" style="margin-top: 20px; display: none;">
+        <div
+          id="verify-output"
+          class="entries-container"
+          style="margin-top: 20px; display: none"
+        >
           <div class="entry" id="verify-result"></div>
         </div>
       </div>
@@ -403,9 +420,7 @@
 
         // Update status to connected immediately after subscribing
         connected = true;
-        document
-          .getElementById("status-indicator")
-          .classList.add("connected");
+        document.getElementById("status-indicator").classList.add("connected");
         document.getElementById("status-text").textContent = "Connected";
         document.getElementById("status-text").style.color = "#01b3b9e9";
 
@@ -638,8 +653,10 @@
         }
       }
 
-      window.verifySignature = async function() {
-        const signature = document.getElementById("verify-signature").value.trim();
+      window.verifySignature = async function () {
+        const signature = document
+          .getElementById("verify-signature")
+          .value.trim();
         const pubkey = document.getElementById("verify-pubkey").value.trim();
         const message = document.getElementById("verify-message").value.trim();
 
@@ -660,7 +677,9 @@
 
           const isValid = result.result === "VALID";
           resultDiv.innerHTML = `
-            <div style="white-space: pre-wrap; font-family: Monaco, monospace; ${isValid ? 'color: #00ff00;' : 'color: #ff6b6b;'}">
+            <div style="white-space: pre-wrap; font-family: Monaco, monospace; ${
+              isValid ? "color: #00ff00;" : "color: #ff6b6b;"
+            }">
               ${result.output}
             </div>
           `;

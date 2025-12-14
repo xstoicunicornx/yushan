@@ -79,8 +79,8 @@ pub fn generate_nonce_core(session: &str, storage: &dyn Storage) -> Result<Comma
         // ~hack to go back from scalar index to u32
         let mut u32_index_bytes = [0u8; 4];
         u32_index_bytes.copy_from_slice(&paired_share.index().to_bytes()[28..]);
-        let u32_index = u32::from_be_bytes(u32_index_bytes);
-        u32_index
+        
+        u32::from_be_bytes(u32_index_bytes)
     };
 
     out.push_str("⚙️  Using schnorr_fun's FROST nonce generation\n");
@@ -137,20 +137,23 @@ pub fn generate_nonce_core(session: &str, storage: &dyn Storage) -> Result<Comma
 
     // Create JSON result for copy-pasting
     let output = NonceOutput {
-        party_index: party_index,
+        party_index,
         session: session.to_string(),
         nonce: public_nonce_hex,
         event_type: "signing_nonce".to_string(),
     };
     let result = serde_json::to_string(&output)?;
 
-    Ok(CommandResult { output: out, result })
+    Ok(CommandResult {
+        output: out,
+        result,
+    })
 }
 
 pub fn generate_nonce(session: &str) -> Result<()> {
     let storage = FileStorage::new(STATE_DIR)?;
     let cmd_result = generate_nonce_core(session, &storage)?;
-    print!("{}\n", cmd_result.output);
+    println!("{}", cmd_result.output);
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     println!("📋 Copy this JSON:");
     println!("{}\n", cmd_result.result);
@@ -181,8 +184,8 @@ pub fn create_signature_share_core(
         // ~hack to go back from scalar index to u32
         let mut u32_index_bytes = [0u8; 4];
         u32_index_bytes.copy_from_slice(&paired_share.index().to_bytes()[28..]);
-        let u32_index = u32::from_be_bytes(u32_index_bytes);
-        u32_index
+        
+        u32::from_be_bytes(u32_index_bytes)
     };
 
     // Load shared key
@@ -348,13 +351,16 @@ pub fn create_signature_share_core(
     };
     let result = serde_json::to_string(&output)?;
 
-    Ok(CommandResult { output: out, result })
+    Ok(CommandResult {
+        output: out,
+        result,
+    })
 }
 
 pub fn create_signature_share(session: &str, message: &str, data: &str) -> Result<()> {
     let storage = FileStorage::new(STATE_DIR)?;
     let cmd_result = create_signature_share_core(session, message, data, &storage)?;
-    print!("{}\n", cmd_result.output);
+    println!("{}", cmd_result.output);
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     println!("📋 Copy this JSON:");
     println!("{}\n", cmd_result.result);
@@ -506,13 +512,16 @@ pub fn combine_signatures_core(data: &str, storage: &dyn Storage) -> Result<Comm
         sig_hex, pubkey_hex, message
     );
 
-    Ok(CommandResult { output: out, result })
+    Ok(CommandResult {
+        output: out,
+        result,
+    })
 }
 
 pub fn combine_signatures(data: &str) -> Result<()> {
     let storage = FileStorage::new(STATE_DIR)?;
     let cmd_result = combine_signatures_core(data, &storage)?;
-    print!("{}\n", cmd_result.output);
+    println!("{}", cmd_result.output);
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     println!("📋 Signature:");
     println!("{}\n", cmd_result.result);
@@ -520,6 +529,7 @@ pub fn combine_signatures(data: &str) -> Result<()> {
 }
 
 /// Verify a FROST signature
+#[allow(dead_code)]
 pub fn verify_signature_core(
     signature_hex: &str,
     public_key_hex: &str,
@@ -527,19 +537,17 @@ pub fn verify_signature_core(
 ) -> Result<CommandResult> {
     let mut out = String::new();
 
-    out.push_str("🔍 FROST Signature Verification\n\n");
+    out.push_str("🔍 Schnorr Signature Verification\n\n");
 
     // Decode signature
-    let sig_bytes = hex::decode(signature_hex)
-        .context("Failed to decode signature hex")?;
-    let signature: Signature = bincode::deserialize(&sig_bytes)
-        .context("Failed to deserialize signature")?;
+    let sig_bytes = hex::decode(signature_hex).context("Failed to decode signature hex")?;
+    let signature: Signature =
+        bincode::deserialize(&sig_bytes).context("Failed to deserialize signature")?;
 
     // Decode public key
-    let pubkey_bytes = hex::decode(public_key_hex)
-        .context("Failed to decode public key hex")?;
-    let public_key: Point<EvenY> = bincode::deserialize(&pubkey_bytes)
-        .context("Failed to deserialize public key")?;
+    let pubkey_bytes = hex::decode(public_key_hex).context("Failed to decode public key hex")?;
+    let public_key: Point<EvenY> =
+        bincode::deserialize(&pubkey_bytes).context("Failed to deserialize public key")?;
 
     // Create message
     let msg = Message::new("frostsnap-yushan", message.as_bytes());
@@ -565,12 +573,16 @@ pub fn verify_signature_core(
         "INVALID".to_string()
     };
 
-    Ok(CommandResult { output: out, result })
+    Ok(CommandResult {
+        output: out,
+        result,
+    })
 }
 
+#[allow(dead_code)]
 pub fn verify_signature(signature_hex: &str, public_key_hex: &str, message: &str) -> Result<()> {
     let cmd_result = verify_signature_core(signature_hex, public_key_hex, message)?;
-    print!("{}\n", cmd_result.output);
+    println!("{}", cmd_result.output);
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     println!("📋 Result: {}\n", cmd_result.result);
     Ok(())

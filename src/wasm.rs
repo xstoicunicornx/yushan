@@ -1,5 +1,9 @@
 use wasm_bindgen::prelude::*;
+
+#[cfg(target_arch = "wasm32")]
 use serde::Serialize;
+
+#[cfg(target_arch = "wasm32")]
 use crate::{keygen, signing};
 
 /// Initialize panic hook for better error messages in browser
@@ -9,6 +13,7 @@ pub fn init() {
 }
 
 /// Helper struct for WASM JSON serialization
+#[cfg(target_arch = "wasm32")]
 #[derive(Serialize)]
 struct WasmCommandResult {
     output: String,
@@ -16,6 +21,7 @@ struct WasmCommandResult {
 }
 
 /// Convert CommandResult to JSON string for WASM
+#[cfg(target_arch = "wasm32")]
 fn command_result_to_json(cmd_result: crate::CommandResult) -> Result<String, JsValue> {
     let wasm_result = WasmCommandResult {
         output: cmd_result.output,
@@ -28,6 +34,7 @@ fn command_result_to_json(cmd_result: crate::CommandResult) -> Result<String, Js
 // WASM-exposed keygen functions
 
 #[wasm_bindgen]
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
 pub fn wasm_keygen_round1(threshold: u32, n_parties: u32, my_index: u32) -> Result<String, JsValue> {
     #[cfg(target_arch = "wasm32")]
     {
@@ -44,6 +51,7 @@ pub fn wasm_keygen_round1(threshold: u32, n_parties: u32, my_index: u32) -> Resu
 }
 
 #[wasm_bindgen]
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
 pub fn wasm_keygen_round2(data: String) -> Result<String, JsValue> {
     #[cfg(target_arch = "wasm32")]
     {
@@ -60,6 +68,7 @@ pub fn wasm_keygen_round2(data: String) -> Result<String, JsValue> {
 }
 
 #[wasm_bindgen]
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
 pub fn wasm_keygen_finalize(data: String) -> Result<String, JsValue> {
     #[cfg(target_arch = "wasm32")]
     {
@@ -78,6 +87,7 @@ pub fn wasm_keygen_finalize(data: String) -> Result<String, JsValue> {
 // WASM-exposed signing functions
 
 #[wasm_bindgen]
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
 pub fn wasm_sign_nonce(session: String) -> Result<String, JsValue> {
     #[cfg(target_arch = "wasm32")]
     {
@@ -94,6 +104,7 @@ pub fn wasm_sign_nonce(session: String) -> Result<String, JsValue> {
 }
 
 #[wasm_bindgen]
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
 pub fn wasm_sign(session: String, message: String, data: String) -> Result<String, JsValue> {
     #[cfg(target_arch = "wasm32")]
     {
@@ -110,6 +121,7 @@ pub fn wasm_sign(session: String, message: String, data: String) -> Result<Strin
 }
 
 #[wasm_bindgen]
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
 pub fn wasm_combine(data: String) -> Result<String, JsValue> {
     #[cfg(target_arch = "wasm32")]
     {
@@ -126,6 +138,7 @@ pub fn wasm_combine(data: String) -> Result<String, JsValue> {
 }
 
 #[wasm_bindgen]
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_variables))]
 pub fn wasm_verify(signature: String, public_key: String, message: String) -> Result<String, JsValue> {
     #[cfg(target_arch = "wasm32")]
     {

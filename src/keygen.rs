@@ -280,13 +280,16 @@ pub fn round1_core(
     };
     let result = serde_json::to_string(&output)?;
 
-    Ok(CommandResult { output: out, result })
+    Ok(CommandResult {
+        output: out,
+        result,
+    })
 }
 
 pub fn round1(threshold: u32, n_parties: u32, my_index: u32) -> Result<()> {
     let storage = FileStorage::new(STATE_DIR)?;
     let cmd_result = round1_core(threshold, n_parties, my_index, &storage)?;
-    print!("{}\n", cmd_result.output);
+    println!("{}", cmd_result.output);
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     println!("📋 Copy this JSON:");
     println!("{}\n", cmd_result.result);
@@ -380,10 +383,7 @@ pub fn round2_core(data: &str, storage: &dyn Storage) -> Result<CommandResult> {
         // Extract index value - scalars are big-endian, so small values are in last byte
         let to_index = idx_scalar.to_bytes()[31] as u32;
 
-        out.push_str(&format!(
-            "   Share for Party {}: <secret scalar>\n",
-            to_index
-        ));
+        out.push_str(&format!("   Share for Party {}: {}\n", to_index, share_hex));
 
         shares.push(ShareData {
             to_index,
@@ -413,13 +413,16 @@ pub fn round2_core(data: &str, storage: &dyn Storage) -> Result<CommandResult> {
     };
     let result = serde_json::to_string(&output)?;
 
-    Ok(CommandResult { output: out, result })
+    Ok(CommandResult {
+        output: out,
+        result,
+    })
 }
 
 pub fn round2(data: &str) -> Result<()> {
     let storage = FileStorage::new(STATE_DIR)?;
     let cmd_result = round2_core(data, &storage)?;
-    print!("{}\n", cmd_result.output);
+    println!("{}", cmd_result.output);
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     println!("📋 Copy this JSON:");
     println!("{}\n", cmd_result.result);
@@ -542,7 +545,7 @@ pub fn finalize_core(data: &str, storage: &dyn Storage) -> Result<CommandResult>
         .into_xonly();
 
     // Display clean hex (just the raw bytes, no metadata)
-    let final_share_hex = hex::encode(xonly_paired_share.secret_share().to_bytes());
+    let final_share_hex = hex::encode(xonly_paired_share.secret_share().share.to_bytes());
     let public_key_hex = hex::encode(xonly_shared_key.public_key().to_bytes());
 
     // Save bincode format for loading later (includes type info for deserialization)
@@ -561,13 +564,16 @@ pub fn finalize_core(data: &str, storage: &dyn Storage) -> Result<CommandResult>
         final_share_hex, public_key_hex
     );
 
-    Ok(CommandResult { output: out, result })
+    Ok(CommandResult {
+        output: out,
+        result,
+    })
 }
 
 pub fn finalize(data: &str) -> Result<()> {
     let storage = FileStorage::new(STATE_DIR)?;
     let cmd_result = finalize_core(data, &storage)?;
-    print!("{}\n", cmd_result.output);
+    println!("{}", cmd_result.output);
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     println!("📋 Your keys:");
     println!("{}\n", cmd_result.result);

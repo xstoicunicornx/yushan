@@ -5,6 +5,7 @@ use std::path::PathBuf;
 pub trait Storage {
     fn read(&self, key: &str) -> Result<Vec<u8>>;
     fn write(&self, key: &str, data: &[u8]) -> Result<()>;
+    #[allow(dead_code)]
     fn exists(&self, key: &str) -> bool;
 }
 
