@@ -36,7 +36,6 @@ body {
 .logo-box {
   margin-top: 12px;
   text-align: center;
-  margin-bottom: 2em;
 }
 
 .logo-box a {
@@ -263,25 +262,26 @@ label {
 .phase-section {
   background-color: var(--bg-card);
   border-radius: 15px;
-  padding: 15px;
+  padding: 20px;
   color: var(--primary);
-  box-shadow: 0px -5px 7px 2px var(--secondary);
-  margin-bottom: 20px;
+  margin-top: 3em;
+  margin-bottom: 2em;
 }
 
 .phase-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--secondary);
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--secondary);
 }
 
 .phase-title {
-  font-size: 1.3em;
+  font-size: 1.4em;
   font-weight: bold;
   color: var(--secondary);
+  letter-spacing: 0.5px;
 }
 
 .phase-count {
