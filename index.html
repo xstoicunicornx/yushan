@@ -135,6 +135,14 @@ yushan keygen-round2 --data '{PARTY1_JSON} {PARTY2_JSON} ...'
         </div>
 
         <button class="btn" onclick="updateConfig()">Update & Subscribe</button>
+        <div class="config-field">
+          <label>Configuration Summary</label>
+          <textarea
+            class="config-textarea"
+            id="config"
+            readonly
+          ></textarea>
+        </div>
         <button
           class="btn btn-secondary"
           onclick="clearAll()"
@@ -442,6 +450,7 @@ yushan keygen-round2 --data '{PARTY1_JSON} {PARTY2_JSON} ...'
 
       // Data storage: phase -> party_index -> event
       const phaseData = {
+        config_announcement: new Map(),
         keygen_round1: new Map(),
         keygen_round2: new Map(),
         signing_nonce: new Map(),
@@ -453,6 +462,7 @@ yushan keygen-round2 --data '{PARTY1_JSON} {PARTY2_JSON} ...'
         const roomId = document.getElementById("room-id").value.trim();
         const threshold = parseInt(document.getElementById("threshold").value);
         const nParties = parseInt(document.getElementById("n-parties").value);
+        document.getElementById("config").value = JSON.stringify({roomId, threshold, nParties})
 
         if (!roomId) {
           alert("Please enter a room ID");
@@ -511,6 +521,7 @@ yushan keygen-round2 --data '{PARTY1_JSON} {PARTY2_JSON} ...'
             },
           }
         );
+        announceConfigToNostr()
 
         // Update status to connected immediately after subscribing
         connected = true;
@@ -522,6 +533,7 @@ yushan keygen-round2 --data '{PARTY1_JSON} {PARTY2_JSON} ...'
       };
 
       function processEvent(data, nostrEvent) {
+        console.log('processEvent', data, nostrEvent)
         const eventType = data.type;
         const partyIndex = data.party_index;
 
@@ -661,6 +673,36 @@ yushan keygen-round2 --data '{PARTY1_JSON} {PARTY2_JSON} ...'
         phaseData.signing_share.clear();
 
         refreshUI();
+      };
+
+      window.announceConfigToNostr = async function () {
+        const textarea = document.getElementById('config');
+        let content = textarea.value.trim();
+        const config = JSON.parse(content)
+        config.type = 'config_announcement'
+        content = JSON.stringify(config)
+
+        // Create and publish Nostr event
+        try {
+          const event = finalizeEvent(
+            {
+              kind: 1,
+              created_at: Math.floor(Date.now() / 1000),
+              tags: [["r", currentRoom]],
+              content: content,
+            },
+            sk
+          );
+
+          await Promise.any(pool.publish(RELAYS, event));
+
+          console.log("Published event:", event.id);
+        } catch (e) {
+          console.error("Failed to publish:", e);
+          alert(
+            "Failed to publish to Nostr relays. Check console for details."
+          );
+        }
       };
 
       window.postToNostr = async function (textareaId, expectedType) {
