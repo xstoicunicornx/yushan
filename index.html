@@ -28,68 +28,6 @@
           <div class="phase-title">Instructions</div>
         </div>
         <p></p>
-        <ol>
-          <li>
-            Download and build:
-            <div class="header-links">
-              <b
-                ><a href="https://github.com/nickfarrow/yushan" target="_blank"
-                  >Workshop CLI Tool</a
-                >
-              </b>
-              <code>
-                <pre>
-git clone https://github.com/nickfarrow/yushan
-cd yushan
-cargo install --path .
-</pre
-                >
-              </code>
-              or,
-              <a href="/cli.html"
-                >im allergic to crab shells (use browser tools)</a
-              >
-            </div>
-          </li>
-          <li>
-            Check out the commands available by running
-            <code>yushan --help</code>
-          </li>
-          <li>
-            Find one or more people to partner up with (N) and agree upon a
-            threshold (T).
-          </li>
-          <li>
-            Choose a unique room ID (enter below) which will be used to share
-            messages.
-          </li>
-          <li>
-            Run the first command (keygen-round1) and share your contribution
-            with your group.
-          </li>
-          <li>
-            After receiving input from all parties, use this data as input for
-            the next round, e.g.
-            <code>
-              <pre>
-yushan keygen-round2 --data '{PARTY1_JSON} {PARTY2_JSON} ...'
-</pre
-              >
-            </code>
-          </li>
-          <li>
-            Repeat the same with the following steps. Look at console output,
-            ask questions.
-          </li>
-          <li>Finish creating your FROST key, sign things!</li>
-          <li style="color: var(--bg-secondary)">
-            9. cry to nick if things are broken
-          </li>
-        </ol>
-        <b> Challenge: can you sign a nostr event? </b>
-      </div>
-
-      <h1>Extremely Public Bulletin Board</h1>
       <br />
 
       <!-- Config Section -->
@@ -128,9 +66,13 @@ yushan keygen-round2 --data '{PARTY1_JSON} {PARTY2_JSON} ...'
               type="number"
               id="n-parties"
               placeholder="Total participants"
-              value="3"
+              value="2"
               min="1"
             />
+          </div>
+          <div class="config-field">
+            <label>Your party index (1-based)</label>
+            <input type="number" id="my-index" value="1" min="1" />
           </div>
         </div>
 
@@ -149,252 +91,88 @@ yushan keygen-round2 --data '{PARTY1_JSON} {PARTY2_JSON} ...'
         protocol to work!
       </div>
 
-      <h1>Part I: Distributed Key Generation</h1>
 
-      <!-- Keygen Round 1 -->
-      <div class="phase-section">
-        <div class="phase-header">
-          <div class="phase-title">Distributed Keygen Round 1: Commitments</div>
-          <div class="phase-count" id="round1-count">0 / 0</div>
+
+      <div id="commands">
+        <!-- Keygen Round 1 -->
+        <div class="command-section">
+          <div class="command-title">Keygen Round 1</div>
+          <div id="kg1-output" class="output-section hidden"></div>
         </div>
 
-        <div class="post-box">
-          <div class="post-label">
-            Run:
-            <code
-              >yushan keygen-round1 --threshold 2 --n-parties 3 --my-index
-              &lt;your-index&gt;</code
-            >
+        <!-- Keygen Round 2 -->
+        <div class="command-section">
+          <div class="command-title">Keygen Round 2</div>
+          <div class="form-group">
+            <label>Paste all commitments (space-separated JSON):</label>
+            <textarea
+              id="kg2-data"
+              placeholder='{"party_index": 1, ...} {"party_index": 2, ...}'
+            ></textarea>
           </div>
-          <textarea
-            class="post-textarea"
-            id="round1-input"
-            placeholder='Paste your keygen-round1 JSON output here, e.g.: {"party_index": 1, "keygen_input": "hex...", "type": "keygen_round1"}'
-          ></textarea>
-          <button
-            class="btn"
-            onclick="postToNostr('round1-input', 'keygen_round1')"
-          >
-            Broadcast
-          </button>
+          <button onclick="runKeygenRound2()">Run Keygen Round 2</button>
+          <div id="kg2-output" class="output-section hidden"></div>
         </div>
 
-        <div class="entries-container" id="round1-entries">
-          <div class="empty-state">
-            Waiting for parties to post their commitments...
+        <!-- Keygen Finalize -->
+        <div class="command-section">
+          <div class="command-title">Keygen Finalize</div>
+          <div class="form-group">
+            <label>Paste all shares sent to you (space-separated JSON):</label>
+            <textarea
+              id="kgf-data"
+              placeholder='{"from": 1, ...} {"from": 2, ...}'
+            ></textarea>
           </div>
+          <button onclick="runKeygenFinalize()">Finalize Keygen</button>
+          <div id="kgf-output" class="output-section hidden"></div>
         </div>
-        <div class="copy-section" id="round1-copy-section">
-          <div class="copy-label">Group's Keygen Commitments</div>
-          <div class="copy-output" id="round1-output">No data yet</div>
-          <button
-            class="btn btn-secondary"
-            onclick="copyToClipboard('round1-output')"
-          >
-            Copy All
-          </button>
-        </div>
-      </div>
 
-      <!-- Keygen Round 2 -->
-      <div class="phase-section">
-        <div class="phase-header">
-          <div class="phase-title">
-            Distributed Keygen Round 2: Keygen Shares
+        <!-- Sign Nonce -->
+        <div class="command-section">
+          <div class="command-title">Generate Signing Nonce</div>
+          <div class="form-group">
+            <label>Session ID (unique per signature):</label>
+            <input type="text" id="sn-session" value="msg1" />
           </div>
-          <div class="phase-count" id="round2-count">0 / 0</div>
+          <button onclick="runSignNonce()">Generate Nonce</button>
+          <div id="sn-output" class="output-section hidden"></div>
         </div>
 
-        <div class="post-box">
-          <div class="post-label">
-            Run:
-            <code>yushan keygen-round2 --data '&lt;all-commitments&gt;'</code>
+        <!-- Sign -->
+        <div class="command-section">
+          <div class="command-title">Create Signature Share</div>
+          <div class="form-group">
+            <label>Session ID:</label>
+            <input type="text" id="sign-session" value="msg1" />
           </div>
-          <textarea
-            class="post-textarea"
-            id="round2-input"
-            placeholder='Paste your keygen-round2 JSON output here, e.g.: {"party_index": 1, "shares": [...], "type": "keygen_round2"}'
-          ></textarea>
-          <button
-            class="btn"
-            onclick="postToNostr('round2-input', 'keygen_round2')"
-          >
-            Broadcast
-          </button>
-        </div>
-
-        <div class="entries-container" id="round2-entries">
-          <div class="empty-state">
-            Waiting for parties to post their secret shares...
+          <div class="form-group">
+            <label>Message to sign:</label>
+            <input type="text" id="sign-message" value="Hello FROST!" />
           </div>
-        </div>
-        <div class="copy-section" id="round2-copy-section">
-          <div class="copy-label">Group's Keygen Shares</div>
-          <div class="copy-output" id="round2-output">No data yet</div>
-          <button
-            class="btn btn-secondary"
-            onclick="copyToClipboard('round2-output')"
-          >
-            Copy All
-          </button>
-        </div>
-      </div>
-
-      <!-- Keygen Finalize -->
-      <div class="phase-section">
-        <div class="phase-header">
-          <div class="phase-title">Finalize Keygen</div>
-        </div>
-
-        <div class="post-box">
-          <div class="post-label">
-            Copy "Group's Keygen Shares" above, then run:
-            <br />
-            <code>yushan keygen-finalize --data '&lt;shares-JSON&gt;'</code>
+          <div class="form-group">
+            <label>Paste nonces and group key (space-separated JSON):</label>
+            <textarea
+              id="sign-data"
+              placeholder='{"party_index": 1, ...} {"party_index": 2, ...}'
+            ></textarea>
           </div>
-          After this step, you'll have your secret share of the group's public
-          key!
-        </div>
-      </div>
-
-      <h1>Part II: Signing</h1>
-
-      <!-- Signing Nonces -->
-      <div class="phase-section">
-        <div class="phase-header">
-          <div class="phase-title">Signing: Nonces</div>
-          <div class="phase-count" id="nonce-count">0 / 0</div>
+          <button onclick="runSign()">Create Signature Share</button>
+          <div id="sign-output" class="output-section hidden"></div>
         </div>
 
-        <div class="post-box">
-          <div class="post-label">
-            Run: <code>yushan generate-nonce --session "msg1"</code>
+        <!-- Combine -->
+        <div class="command-section">
+          <div class="command-title">Combine Signature Shares</div>
+          <div class="form-group">
+            <label>Paste all signature shares (space-separated JSON):</label>
+            <textarea
+              id="combine-data"
+              placeholder='{"party_index": 1, ...} {"party_index": 2, ...}'
+            ></textarea>
           </div>
-          <textarea
-            class="post-textarea"
-            id="nonce-input"
-            placeholder='Paste your generate-nonce JSON output here, e.g.: {"party_index": 1, "session": "msg1", "nonce": "hex...", "type": "signing_nonce"}'
-          ></textarea>
-          <button
-            class="btn"
-            onclick="postToNostr('nonce-input', 'signing_nonce')"
-          >
-            Broadcast
-          </button>
-        </div>
-
-        <div class="entries-container" id="nonce-entries">
-          <div class="empty-state">Waiting for signers to post nonces...</div>
-        </div>
-        <div class="copy-section" id="nonce-copy-section">
-          <div class="copy-label">Session Nonces</div>
-          <div class="copy-output" id="nonce-output">No data yet</div>
-          <button
-            class="btn btn-secondary"
-            onclick="copyToClipboard('nonce-output')"
-          >
-            Copy All
-          </button>
-        </div>
-      </div>
-
-      <!-- Signing Shares -->
-      <div class="phase-section">
-        <div class="phase-header">
-          <div class="phase-title">Signing: Signature Shares</div>
-          <div class="phase-count" id="sig-count">0 / 0</div>
-        </div>
-
-        <div class="post-box">
-          <div class="post-label">
-            Run:
-            <code
-              >yushan sign --session "msg1" --message "Hello!" --data
-              '&lt;all-nonces&gt;'</code
-            >
-          </div>
-          <textarea
-            class="post-textarea"
-            id="sig-input"
-            placeholder='Paste your sign JSON output here, e.g.: {"party_index": 1, "session": "msg1", "signature_share": "hex...", "type": "signing_share"}'
-          ></textarea>
-          <button
-            class="btn"
-            onclick="postToNostr('sig-input', 'signing_share')"
-          >
-            Broadcast
-          </button>
-        </div>
-
-        <div class="entries-container" id="sig-entries">
-          <div class="empty-state">
-            Waiting for signers to post signature shares...
-          </div>
-        </div>
-        <div class="copy-section" id="sig-copy-section">
-          <div class="copy-label">Session Signature Shares</div>
-          <div class="copy-output" id="sig-output">No data yet</div>
-          <button
-            class="btn btn-secondary"
-            onclick="copyToClipboard('sig-output')"
-          >
-            Copy All
-          </button>
-        </div>
-      </div>
-
-      <!-- Signature Verifier -->
-      <h1>Signature Verifier</h1>
-      <div class="phase-section">
-        <div class="phase-header">
-          <div class="phase-title">Verify Schnorr Signature</div>
-        </div>
-
-        <div class="post-box">
-          <div class="post-label">Signature (hex)</div>
-          <textarea
-            class="post-textarea"
-            id="verify-signature"
-            placeholder="Paste signature hex here..."
-          ></textarea>
-        </div>
-
-        <div class="post-box">
-          <div class="post-label">Public Key (hex)</div>
-          <textarea
-            class="post-textarea"
-            id="verify-pubkey"
-            placeholder="Paste public key hex here..."
-          ></textarea>
-        </div>
-
-        <div class="post-box">
-          <div class="post-label">Message</div>
-          <input
-            type="text"
-            id="verify-message"
-            placeholder="The message that was signed..."
-            style="
-              width: 100%;
-              padding: 10px;
-              background: var(--bg-primary);
-              border: 1px solid var(--secondary);
-              color: var(--primary);
-              border-radius: 15px;
-            "
-          />
-        </div>
-
-        <button class="btn" onclick="verifySignature()">
-          Verify Signature
-        </button>
-
-        <div
-          id="verify-output"
-          class="entries-container"
-          style="margin-top: 20px; display: none"
-        >
-          <div class="entry" id="verify-result"></div>
+          <button onclick="runCombine()">Combine Signatures</button>
+          <div id="combine-output" class="output-section hidden"></div>
         </div>
       </div>
 
@@ -404,7 +182,6 @@ yushan keygen-round2 --data '{PARTY1_JSON} {PARTY2_JSON} ...'
           alt="Stay Frosty"
         />
       </div>
-
       <div class="header-links" style="text-align: center">
         <p>
           PS: limited time 15% off
@@ -422,7 +199,53 @@ yushan keygen-round2 --data '{PARTY1_JSON} {PARTY2_JSON} ...'
         finalizeEvent,
       } from "https://esm.sh/nostr-tools@2.7.2";
 
-      import init, { wasm_verify } from "./pkg/yushan.js";
+      import init, {
+        test_wasm,
+        wasm_keygen_round1,
+        wasm_keygen_round2,
+        wasm_keygen_finalize,
+        wasm_generate_nonce,
+        wasm_sign,
+        wasm_combine,
+        wasm_verify,
+      } from "./pkg/yushan.js";
+
+      function showOutput(elementId, responseJson) {
+        const elem = document.getElementById(elementId);
+
+        try {
+          // Parse the JSON response with output and result fields
+          const response = JSON.parse(responseJson);
+
+          // Create formatted display
+          let html = '<div class="output-container">';
+
+          // Educational output section
+          html += '<div class="educational-output">';
+          html += "<pre>" + response.output + "</pre>";
+          html += "</div>";
+
+          // Result section with copy button
+          if (response.result && response.result.trim()) {
+            html += '<div class="result-section">';
+            html += '<div class="result-header">📋 Copy this:</div>';
+            html += '<div class="result-box">' + response.result + "</div>";
+            html +=
+              '<button class="copy-btn" onclick="copyResult(\'' +
+              elementId +
+              "')\">Copy to Clipboard</button>";
+            html += "</div>";
+          }
+
+          html += "</div>";
+          elem.innerHTML = html;
+        } catch (e) {
+          // Fallback for non-JSON responses (errors, etc.)
+          elem.textContent = responseJson;
+        }
+
+        elem.classList.remove("hidden");
+      }
 
       const RELAYS = [
         // "wss://relay.damus.io",
@@ -442,6 +265,7 @@ yushan keygen-round2 --data '{PARTY1_JSON} {PARTY2_JSON} ...'
 
       // Data storage: phase -> party_index -> event
       const phaseData = {
+        config_announcement: new Map(),
         keygen_round1: new Map(),
         keygen_round2: new Map(),
         signing_nonce: new Map(),
@@ -478,6 +302,7 @@ yushan keygen-round2 --data '{PARTY1_JSON} {PARTY2_JSON} ...'
         }
 
         // Clear previous data
+        phaseData.config_announcement.clear();
         phaseData.keygen_round1.clear();
         phaseData.keygen_round2.clear();
         phaseData.signing_nonce.clear();
@@ -536,6 +361,10 @@ yushan keygen-round2 --data '{PARTY1_JSON} {PARTY2_JSON} ...'
           return; // Already have an earlier event
         }
 
+        if (eventType === 'config_announcement') {
+          console.log('processEvent', data, nostrEvent)
+          keygenRound1(data)
+        }
         phaseData[eventType].set(partyIndex, {
           ...data,
           created_at: nostrEvent.created_at,
@@ -545,83 +374,30 @@ yushan keygen-round2 --data '{PARTY1_JSON} {PARTY2_JSON} ...'
         refreshUI();
       }
 
-      function refreshUI() {
+      function keygenRound1(data) {
+        const roomId = document.getElementById("room-id").value.trim();
         const threshold = parseInt(document.getElementById("threshold").value);
         const nParties = parseInt(document.getElementById("n-parties").value);
+        if (data.roomId !== roomId || data.threshold !== threshold || data.nParties !== nParties) {
+          console.log('keygen config not right')
+          return
+        }
 
-        updatePhaseUI("keygen_round1", "round1", nParties);
-        updatePhaseUI("keygen_round2", "round2", nParties);
-        updatePhaseUI("signing_nonce", "nonce", threshold);
-        updatePhaseUI("signing_share", "sig", threshold);
+        const myIndex = parseInt(document.getElementById("my-index").value)
+        const result = wasm_keygen_round1(threshold, nParties, myIndex);
+        showOutput("kg1-output", result);
+        postToNostr(JSON.parse(result).result)
       }
 
-      function updatePhaseUI(phaseKey, uiPrefix, expectedCount) {
-        const data = phaseData[phaseKey];
-        const entriesEl = document.getElementById(`${uiPrefix}-entries`);
-        const countEl = document.getElementById(`${uiPrefix}-count`);
-        const outputEl = document.getElementById(`${uiPrefix}-output`);
-        const copySectionEl = document.getElementById(
-          `${uiPrefix}-copy-section`
-        );
-
-        // Update count
-        countEl.textContent = `${data.size} / ${expectedCount}`;
-
-        // Update count color based on completion
-        if (data.size >= expectedCount) {
-          countEl.style.color = "var(--secondary)";
-          countEl.style.fontWeight = "bold";
-        } else {
-          countEl.style.color = "var(--primary)";
-          countEl.style.fontWeight = "normal";
-        }
-
-        // Update entries display
-        if (data.size === 0) {
-          entriesEl.innerHTML = '<div class="empty-state">No data yet...</div>';
-        } else {
-          entriesEl.innerHTML = "";
-          const sortedEntries = Array.from(data.values()).sort(
-            (a, b) => a.party_index - b.party_index
-          );
-
-          sortedEntries.forEach((entry) => {
-            const entryDiv = document.createElement("div");
-            entryDiv.className = "entry";
-
-            const date = new Date(entry.created_at * 1000);
-            const timeStr = date.toLocaleTimeString();
-
-            entryDiv.innerHTML = `
-              <div class="entry-header">
-                <span class="entry-party">Party ${entry.party_index}</span>
-                <span class="entry-time">${timeStr}</span>
-              </div>
-              <div class="entry-data">${JSON.stringify(entry, null, 2)}</div>
-            `;
-
-            entriesEl.appendChild(entryDiv);
-          });
-        }
-
-        // Show/hide and update aggregated output section based on whether we have enough data
-        if (data.size >= expectedCount) {
-          copySectionEl.style.display = "block";
-          const jsonObjects = Array.from(data.values())
-            .sort((a, b) => a.party_index - b.party_index)
-            .map((entry) => {
-              // Remove our metadata before outputting
-              const clean = { ...entry };
-              delete clean.created_at;
-              delete clean.nostr_id;
-              return JSON.stringify(clean);
-            });
-
-          outputEl.textContent = jsonObjects.join(" ");
-        } else {
-          copySectionEl.style.display = "none";
-        }
+      function refreshUI() {
+        // const nParties = parseInt(document.getElementById("n-parties").value);
+        //
+        // updatePhaseUI("keygen_round1", "round1", nParties);
+        // updatePhaseUI("keygen_round2", "round2", nParties);
+        // updatePhaseUI("signing_nonce", "nonce", threshold);
+        // updatePhaseUI("signing_share", "sig", threshold);
       }
+
 
       window.copyToClipboard = function (elementId) {
         const el = document.getElementById(elementId);
@@ -663,45 +439,8 @@ yushan keygen-round2 --data '{PARTY1_JSON} {PARTY2_JSON} ...'
         refreshUI();
       };
 
-      window.postToNostr = async function (textareaId, expectedType) {
-        const textarea = document.getElementById(textareaId);
-        const content = textarea.value.trim();
-
-        if (!content) {
-          alert("Please paste your CLI output first");
-          return;
-        }
-
-        if (!currentRoom) {
-          alert("Please configure and subscribe to a room first");
-          return;
-        }
-
-        // Validate JSON
-        let data;
-        try {
-          data = JSON.parse(content);
-        } catch (e) {
-          alert(
-            "Invalid JSON. Please paste the output from your CLI exactly as shown."
-          );
-          return;
-        }
-
-        // Validate type matches
-        if (data.type !== expectedType) {
-          alert(
-            `Expected type "${expectedType}" but got "${data.type}". Make sure you're pasting the correct CLI output.`
-          );
-          return;
-        }
-
-        // Validate required fields
-        if (!data.party_index) {
-          alert("Missing party_index in JSON");
-          return;
-        }
-
+      window.postToNostr = async function (content) {
+        console.log('postToNostr', content)
         // Create and publish Nostr event
         try {
           const event = finalizeEvent(
@@ -709,19 +448,12 @@ yushan keygen-round2 --data '{PARTY1_JSON} {PARTY2_JSON} ...'
               kind: 1,
               created_at: Math.floor(Date.now() / 1000),
               tags: [["r", currentRoom]],
-              content: content,
+              content,
             },
             sk
           );
 
           await Promise.any(pool.publish(RELAYS, event));
-
-          // Clear textarea and show success
-          textarea.value = "";
-          textarea.style.borderColor = "#01b3b9e9";
-          setTimeout(() => {
-            textarea.style.borderColor = "#01b3b9e9";
-          }, 500);
 
           console.log("Published event:", event.id);
         } catch (e) {
