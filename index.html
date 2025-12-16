@@ -425,9 +425,10 @@ yushan keygen-round2 --data '{PARTY1_JSON} {PARTY2_JSON} ...'
       import init, { wasm_verify } from "./pkg/yushan.js";
 
       const RELAYS = [
-        "wss://relay.damus.io",
-        "wss://nos.lol",
-        "wss://relay.nostr.band",
+        // "wss://relay.damus.io",
+        // "wss://nos.lol",
+        // "wss://relay.nostr.band",
+        'ws://localhost:7777'
       ];
 
       let pool = new SimplePool();
