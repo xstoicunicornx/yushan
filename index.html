@@ -151,20 +151,41 @@
       <div class="phase-section">
         <div class="phase-header">
           <div class="phase-title">Finalize Keygen</div>
+          <div class="phase-count" id="finalized-count">0 / 0</div>
         </div>
 
-        <div class="post-box">
-          <div class="post-label">
-            Copy "Group's Keygen Shares" above, then run:
-            <br />
-            <code>yushan keygen-finalize --data '&lt;shares-JSON&gt;'</code>
+        <div class="entries-container" id="finalized-entries">
+          <div class="empty-state">
+            Waiting for parties to send status...
           </div>
-          After this step, you'll have your secret share of the group's public
-          key!
         </div>
       </div>
 
       <h1>Part II: Signing</h1>
+
+      <div class="phase-section">
+        <div class="phase-header">
+          <div class="phase-title">Signing: Message</div>
+        </div>
+
+        <div class="post-box">
+          <div class="post-label">
+            Enter message to be signed
+          </div>
+          <textarea
+            class="post-textarea"
+            id="message-input"
+            placeholder='Message to be signed by nodes...'
+          ></textarea>
+          <button
+            class="btn"
+            onclick="postToNostr('message-input', 'signing_message_request')"
+          >
+            Broadcast
+          </button>
+        </div>
+
+      </div>
 
       <!-- Signing Nonces -->
       <div class="phase-section">
@@ -354,6 +375,7 @@
         keygen_round1_ready: new Array(),
         keygen_round2: new Map(),
         keygen_round2_ready: new Array(),
+        keygen_finalized: new Map(),
         signing_nonce: new Map(),
         signing_share: new Map(),
       };
@@ -469,6 +491,7 @@
 
         updatePhaseUI("keygen_round1", "round1", nParties);
         updatePhaseUI("keygen_round2", "round2", nParties);
+        updatePhaseUI("keygen_finalized", "finalized", nParties);
         updatePhaseUI("signing_nonce", "nonce", threshold);
         updatePhaseUI("signing_share", "sig", threshold);
       }
@@ -525,7 +548,7 @@
 
         // Show/hide and update aggregated output section based on whether we have enough data
         if (data.size >= expectedCount) {
-          copySectionEl.style.display = "block";
+          if (copySectionEl) copySectionEl.style.display = "block";
           const jsonObjects = Array.from(data.values())
             .sort((a, b) => a.party_index - b.party_index)
             .map((entry) => {
@@ -536,11 +559,11 @@
               return JSON.stringify(clean);
             });
 
-          outputEl.textContent = jsonObjects.join(" ")
+          if (outputEl) outputEl.textContent = jsonObjects.join(" ")
           console.log('updateui', jsonObjects,phaseKey, uiPrefix, expectedCount)
           postReadyToNostr(phaseKey)
         } else {
-          copySectionEl.style.display = "none";
+          if (copySectionEl) copySectionEl.style.display = "none";
         }
       }
 
@@ -580,6 +603,7 @@
         phaseData.keygen_round1_ready.clear();
         phaseData.keygen_round2.clear();
         phaseData.keygen_round2_ready.clear();
+        phaseData.keygen_finalized.clear();
         phaseData.signing_nonce.clear();
         phaseData.signing_share.clear();
 
