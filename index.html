@@ -103,28 +103,12 @@
         <!-- Keygen Round 2 -->
         <div class="command-section">
           <div class="command-title">Keygen Round 2</div>
-          <div class="form-group">
-            <label>Paste all commitments (space-separated JSON):</label>
-            <textarea
-              id="kg2-data"
-              placeholder='{"party_index": 1, ...} {"party_index": 2, ...}'
-            ></textarea>
-          </div>
-          <button onclick="runKeygenRound2()">Run Keygen Round 2</button>
           <div id="kg2-output" class="output-section hidden"></div>
         </div>
 
         <!-- Keygen Finalize -->
         <div class="command-section">
           <div class="command-title">Keygen Finalize</div>
-          <div class="form-group">
-            <label>Paste all shares sent to you (space-separated JSON):</label>
-            <textarea
-              id="kgf-data"
-              placeholder='{"from": 1, ...} {"from": 2, ...}'
-            ></textarea>
-          </div>
-          <button onclick="runKeygenFinalize()">Finalize Keygen</button>
           <div id="kgf-output" class="output-section hidden"></div>
         </div>
 
@@ -272,6 +256,8 @@
         keygen_round1_ready: new Map(),
         keygen_round2: new Map(),
         keygen_round2_ready: new Map(),
+        keygen_finalized: new Map(),
+        signing_message_request: new Map(),
         signing_nonce: new Map(),
         signing_share: new Map(),
       };
@@ -412,10 +398,17 @@
       }
 
       function keygenFinalize(data) {
-        document.getElementById("kgf-data").value = data
+        // document.getElementById("kgf-data").value = data
         const result = wasm_keygen_finalize(data);
         console.log('keygenFinalize', result, data)
         showOutput("kgf-output", result);
+
+        const myIndex = parseInt(document.getElementById("my-index").value)
+        postToNostr(JSON.stringify({
+          type: 'keygen_finalized',
+          party_index: myIndex,
+          result: 'successful'
+        }))
       }
       
       function refreshUI() {
