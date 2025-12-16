@@ -130,24 +130,6 @@
           <div class="phase-count" id="round2-count">0 / 0</div>
         </div>
 
-        <div class="post-box">
-          <div class="post-label">
-            Run:
-            <code>yushan keygen-round2 --data '&lt;all-commitments&gt;'</code>
-          </div>
-          <textarea
-            class="post-textarea"
-            id="round2-input"
-            placeholder='Paste your keygen-round2 JSON output here, e.g.: {"party_index": 1, "shares": [...], "type": "keygen_round2"}'
-          ></textarea>
-          <button
-            class="btn"
-            onclick="postToNostr('round2-input', 'keygen_round2')"
-          >
-            Broadcast
-          </button>
-        </div>
-
         <div class="entries-container" id="round2-entries">
           <div class="empty-state">
             Waiting for parties to post their secret shares...
@@ -408,6 +390,7 @@
 
         // Clear previous data
         phaseData.keygen_round1.clear();
+        phaseData.keygen_round1.clear();
         phaseData.keygen_round2.clear();
         phaseData.signing_nonce.clear();
         phaseData.signing_share.clear();
@@ -452,18 +435,22 @@
       };
 
       function processEvent(data, nostrEvent) {
-        console.log('processEvent', data, nostrEvent)
+        if (typeof data !== "object") data = JSON.parse(data)
         const eventType = data.type;
         const partyIndex = data.party_index;
+        if (eventType.includes('_ready')) return;
+        if (eventType.includes('config')) return;
 
+        console.log('processEvent', data, nostrEvent, eventType, partyIndex)
         if (!phaseData[eventType]) {
           console.warn("Unknown event type:", eventType);
           return;
         }
 
         // Deduplication: Keep earliest event for each party in each phase
+
         const existing = phaseData[eventType].get(partyIndex);
-        if (existing && existing.created_at <= nostrEvent.created_at) {
+        if (existing ) {
           return; // Already have an earlier event
         }
 
@@ -515,6 +502,7 @@
           const sortedEntries = Array.from(data.values()).sort(
             (a, b) => a.party_index - b.party_index
           );
+          console.log('updatephaseui',phaseKey, sortedEntries)
 
           sortedEntries.forEach((entry) => {
             const entryDiv = document.createElement("div");
@@ -548,8 +536,7 @@
               return JSON.stringify(clean);
             });
 
-          phaseData[phaseKey] = jsonObjects
-          outputEl.textContent = phaseData[phaseKey].join(" ")
+          outputEl.textContent = jsonObjects.join(" ")
           console.log('updateui', jsonObjects,phaseKey, uiPrefix, expectedCount)
           postReadyToNostr(phaseKey)
         } else {
@@ -631,9 +618,10 @@
 
       window.postReadyToNostr = async function (phaseKey) {
         const content = {type: phaseKey + '_ready'}
-        content.result = phaseData[phaseKey].join(" ")
+        const jsonObjects = Array.from(phaseData[phaseKey].values())
+        content.result = jsonObjects.map(e => JSON.stringify(e)).join(" ")
+        console.log('postReadyto nostr', Array.from(phaseData[phaseKey].values()), content)
 
-        console.log('post ready to nostr', content)
         // Create and publish Nostr event
         try {
           const event = finalizeEvent(
