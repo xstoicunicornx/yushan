@@ -28,68 +28,6 @@
           <div class="phase-title">Instructions</div>
         </div>
         <p></p>
-        <ol>
-          <li>
-            Download and build:
-            <div class="header-links">
-              <b
-                ><a href="https://github.com/nickfarrow/yushan" target="_blank"
-                  >Workshop CLI Tool</a
-                >
-              </b>
-              <code>
-                <pre>
-git clone https://github.com/nickfarrow/yushan
-cd yushan
-cargo install --path .
-</pre
-                >
-              </code>
-              or,
-              <a href="/cli.html"
-                >im allergic to crab shells (use browser tools)</a
-              >
-            </div>
-          </li>
-          <li>
-            Check out the commands available by running
-            <code>yushan --help</code>
-          </li>
-          <li>
-            Find one or more people to partner up with (N) and agree upon a
-            threshold (T).
-          </li>
-          <li>
-            Choose a unique room ID (enter below) which will be used to share
-            messages.
-          </li>
-          <li>
-            Run the first command (keygen-round1) and share your contribution
-            with your group.
-          </li>
-          <li>
-            After receiving input from all parties, use this data as input for
-            the next round, e.g.
-            <code>
-              <pre>
-yushan keygen-round2 --data '{PARTY1_JSON} {PARTY2_JSON} ...'
-</pre
-              >
-            </code>
-          </li>
-          <li>
-            Repeat the same with the following steps. Look at console output,
-            ask questions.
-          </li>
-          <li>Finish creating your FROST key, sign things!</li>
-          <li style="color: var(--bg-secondary)">
-            9. cry to nick if things are broken
-          </li>
-        </ol>
-        <b> Challenge: can you sign a nostr event? </b>
-      </div>
-
-      <h1>Extremely Public Bulletin Board</h1>
       <br />
 
       <!-- Config Section -->
@@ -164,27 +102,6 @@ yushan keygen-round2 --data '{PARTY1_JSON} {PARTY2_JSON} ...'
         <div class="phase-header">
           <div class="phase-title">Distributed Keygen Round 1: Commitments</div>
           <div class="phase-count" id="round1-count">0 / 0</div>
-        </div>
-
-        <div class="post-box">
-          <div class="post-label">
-            Run:
-            <code
-              >yushan keygen-round1 --threshold 2 --n-parties 3 --my-index
-              &lt;your-index&gt;</code
-            >
-          </div>
-          <textarea
-            class="post-textarea"
-            id="round1-input"
-            placeholder='Paste your keygen-round1 JSON output here, e.g.: {"party_index": 1, "keygen_input": "hex...", "type": "keygen_round1"}'
-          ></textarea>
-          <button
-            class="btn"
-            onclick="postToNostr('round1-input', 'keygen_round1')"
-          >
-            Broadcast
-          </button>
         </div>
 
         <div class="entries-container" id="round1-entries">
@@ -452,7 +369,9 @@ yushan keygen-round2 --data '{PARTY1_JSON} {PARTY2_JSON} ...'
       const phaseData = {
         config_announcement: new Map(),
         keygen_round1: new Map(),
+        keygen_round1_ready: new Array(),
         keygen_round2: new Map(),
+        keygen_round2_ready: new Array(),
         signing_nonce: new Map(),
         signing_share: new Map(),
       };
@@ -629,7 +548,10 @@ yushan keygen-round2 --data '{PARTY1_JSON} {PARTY2_JSON} ...'
               return JSON.stringify(clean);
             });
 
-          outputEl.textContent = jsonObjects.join(" ");
+          phaseData[phaseKey] = jsonObjects
+          outputEl.textContent = phaseData[phaseKey].join(" ")
+          console.log('updateui', jsonObjects,phaseKey, uiPrefix, expectedCount)
+          postReadyToNostr(phaseKey)
         } else {
           copySectionEl.style.display = "none";
         }
@@ -668,7 +590,9 @@ yushan keygen-round2 --data '{PARTY1_JSON} {PARTY2_JSON} ...'
         }
 
         phaseData.keygen_round1.clear();
+        phaseData.keygen_round1_ready.clear();
         phaseData.keygen_round2.clear();
+        phaseData.keygen_round2_ready.clear();
         phaseData.signing_nonce.clear();
         phaseData.signing_share.clear();
 
@@ -690,6 +614,34 @@ yushan keygen-round2 --data '{PARTY1_JSON} {PARTY2_JSON} ...'
               created_at: Math.floor(Date.now() / 1000),
               tags: [["r", currentRoom]],
               content: content,
+            },
+            sk
+          );
+
+          await Promise.any(pool.publish(RELAYS, event));
+
+          console.log("Published event:", event.id);
+        } catch (e) {
+          console.error("Failed to publish:", e);
+          alert(
+            "Failed to publish to Nostr relays. Check console for details."
+          );
+        }
+      };
+
+      window.postReadyToNostr = async function (phaseKey) {
+        const content = {type: phaseKey + '_ready'}
+        content.result = phaseData[phaseKey].join(" ")
+
+        console.log('post ready to nostr', content)
+        // Create and publish Nostr event
+        try {
+          const event = finalizeEvent(
+            {
+              kind: 1,
+              created_at: Math.floor(Date.now() / 1000),
+              tags: [["r", currentRoom]],
+              content: JSON.stringify(content),
             },
             sk
           );
