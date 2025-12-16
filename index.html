@@ -217,6 +217,7 @@
           // Parse the JSON response with output and result fields
           const response = JSON.parse(responseJson);
 
+          console.log('showoutput', response, response.result, elementId)
           // Create formatted display
           let html = '<div class="output-container">';
 
@@ -242,6 +243,7 @@
         } catch (e) {
           // Fallback for non-JSON responses (errors, etc.)
           elem.textContent = responseJson;
+          console.log('showouput error', JSON.parse(responseJson))
         }
 
         elem.classList.remove("hidden");
@@ -267,7 +269,9 @@
       const phaseData = {
         config_announcement: new Map(),
         keygen_round1: new Map(),
+        keygen_round1_ready: new Map(),
         keygen_round2: new Map(),
+        keygen_round2_ready: new Map(),
         signing_nonce: new Map(),
         signing_share: new Map(),
       };
@@ -304,7 +308,9 @@
         // Clear previous data
         phaseData.config_announcement.clear();
         phaseData.keygen_round1.clear();
+        // phaseData.keygen_round1_ready.clear();
         phaseData.keygen_round2.clear();
+        // phaseData.keygen_round2_ready.clear();
         phaseData.signing_nonce.clear();
         phaseData.signing_share.clear();
 
@@ -328,7 +334,7 @@
                 const data = JSON.parse(event.content);
                 processEvent(data, event);
               } catch (e) {
-                console.error("Failed to parse event:", e);
+                console.error("Failed to parse event:", e, event);
               }
             },
             oneose() {
@@ -362,8 +368,18 @@
         }
 
         if (eventType === 'config_announcement') {
-          console.log('processEvent', data, nostrEvent)
+          console.log('config_announcement', data, nostrEvent)
           keygenRound1(data)
+        }
+
+        if (eventType === 'keygen_round1_ready') {
+          console.log('keygen_round1_ready', data, nostrEvent)
+          keygenRound2(data.result)
+        }
+
+        if (eventType === 'keygen_round2_ready') {
+          console.log('keygen_round2_ready', data, nostrEvent)
+          keygenFinalize(data.result)
         }
         phaseData[eventType].set(partyIndex, {
           ...data,
@@ -389,6 +405,19 @@
         postToNostr(JSON.parse(result).result)
       }
 
+      function keygenRound2(data) {
+        const result = wasm_keygen_round2(data);
+        showOutput("kg2-output", result);
+        postToNostr(JSON.parse(result).result)
+      }
+
+      function keygenFinalize(data) {
+        document.getElementById("kgf-data").value = data
+        const result = wasm_keygen_finalize(data);
+        console.log('keygenFinalize', result, data)
+        showOutput("kgf-output", result);
+      }
+      
       function refreshUI() {
         // const nParties = parseInt(document.getElementById("n-parties").value);
         //
@@ -432,7 +461,9 @@
         }
 
         phaseData.keygen_round1.clear();
+        // phaseData.keygen_round1_ready.clear();
         phaseData.keygen_round2.clear();
+        // phaseData.keygen_round2_ready.clear();
         phaseData.signing_nonce.clear();
         phaseData.signing_share.clear();
 
@@ -440,7 +471,7 @@
       };
 
       window.postToNostr = async function (content) {
-        console.log('postToNostr', content)
+        // console.log('postToNostr', content)
         // Create and publish Nostr event
         try {
           const event = finalizeEvent(
