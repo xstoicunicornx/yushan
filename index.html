@@ -112,14 +112,23 @@
           <div id="kgf-output" class="output-section hidden"></div>
         </div>
 
+        <!-- Signing Message -->
+        <div class="command-section">
+          <div class="command-title">Message to Sign</div>
+          <div class="form-group">
+            <label>Session ID (unique per signature):</label>
+            <input type="text" id="sm-session" value="" />
+          </div>
+          <div class="form-group">
+            <label>Message</label>
+            <input type="text" id="sm-message" value="" />
+          </div>
+          <div id="sm-output" class="output-section hidden"></div>
+        </div>
+
         <!-- Sign Nonce -->
         <div class="command-section">
           <div class="command-title">Generate Signing Nonce</div>
-          <div class="form-group">
-            <label>Session ID (unique per signature):</label>
-            <input type="text" id="sn-session" value="msg1" />
-          </div>
-          <button onclick="runSignNonce()">Generate Nonce</button>
           <div id="sn-output" class="output-section hidden"></div>
         </div>
 
@@ -341,6 +350,7 @@
       function processEvent(data, nostrEvent) {
         const eventType = data.type;
         const partyIndex = data.party_index;
+        console.log('processEvent', data, nostrEvent, eventType, partyIndex,eventType === 'signing_message_request')
 
         if (!phaseData[eventType]) {
           console.warn("Unknown event type:", eventType);
@@ -350,7 +360,7 @@
         // Deduplication: Keep earliest event for each party in each phase
         const existing = phaseData[eventType].get(partyIndex);
         if (existing && existing.created_at <= nostrEvent.created_at) {
-          return; // Already have an earlier event
+          // return; // Already have an earlier event
         }
 
         if (eventType === 'config_announcement') {
@@ -366,6 +376,11 @@
         if (eventType === 'keygen_round2_ready') {
           console.log('keygen_round2_ready', data, nostrEvent)
           keygenFinalize(data.result)
+        }
+        
+        if (eventType === 'signing_message_request') {
+          console.log('signing_message_request', data, nostrEvent)
+          signingNonceGen(data)
         }
         phaseData[eventType].set(partyIndex, {
           ...data,
@@ -409,6 +424,18 @@
           party_index: myIndex,
           result: 'successful'
         }))
+      }
+
+      function signingNonceGen(data) {
+        console.log('signingNonceGen', data);
+        const sessionId = data.session_id;
+        const message = data.message;
+        document.getElementById("sm-session").value = sessionId;
+        document.getElementById('sm-message').value = message;
+
+        const result = wasm_generate_nonce(sessionId);
+        showOutput("sn-output", result);
+        postToNostr(JSON.parse(result).result)
       }
       
       function refreshUI() {
