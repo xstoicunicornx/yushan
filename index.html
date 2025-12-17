@@ -179,7 +179,7 @@
           ></textarea>
           <button
             class="btn"
-            onclick="postToNostr('message-input', 'signing_message_request')"
+            onclick="postMessageToNostr()"
           >
             Broadcast
           </button>
@@ -192,23 +192,6 @@
         <div class="phase-header">
           <div class="phase-title">Signing: Nonces</div>
           <div class="phase-count" id="nonce-count">0 / 0</div>
-        </div>
-
-        <div class="post-box">
-          <div class="post-label">
-            Run: <code>yushan generate-nonce --session "msg1"</code>
-          </div>
-          <textarea
-            class="post-textarea"
-            id="nonce-input"
-            placeholder='Paste your generate-nonce JSON output here, e.g.: {"party_index": 1, "session": "msg1", "nonce": "hex...", "type": "signing_nonce"}'
-          ></textarea>
-          <button
-            class="btn"
-            onclick="postToNostr('nonce-input', 'signing_nonce')"
-          >
-            Broadcast
-          </button>
         </div>
 
         <div class="entries-container" id="nonce-entries">
@@ -248,7 +231,7 @@
           ></textarea>
           <button
             class="btn"
-            onclick="postToNostr('sig-input', 'signing_share')"
+            onclick="postMessageToNostr()"
           >
             Broadcast
           </button>
@@ -462,6 +445,7 @@
         const partyIndex = data.party_index;
         if (eventType.includes('_ready')) return;
         if (eventType.includes('config')) return;
+        if (eventType === 'signing_message_request') return;
 
         console.log('processEvent', data, nostrEvent, eventType, partyIndex)
         if (!phaseData[eventType]) {
@@ -561,7 +545,7 @@
 
           if (outputEl) outputEl.textContent = jsonObjects.join(" ")
           console.log('updateui', jsonObjects,phaseKey, uiPrefix, expectedCount)
-          postReadyToNostr(phaseKey)
+          if (phaseKey !== 'keygen_finalized') postReadyToNostr(phaseKey)
         } else {
           if (copySectionEl) copySectionEl.style.display = "none";
         }
@@ -668,6 +652,39 @@
           );
         }
       };
+      
+      window.postMessageToNostr = async function () {
+        const textarea = document.getElementById('message-input');
+        const content = JSON.stringify({
+          type: 'signing_message_request',
+          message: textarea.value.trim(),
+          session_id: 'msg1'
+        });
+        console.log('postMessageToNostr', content)
+        
+        // Create and publish Nostr event
+        try {
+          const event = finalizeEvent(
+            {
+              kind: 1,
+              created_at: Math.floor(Date.now() / 1000),
+              tags: [["r", currentRoom]],
+              content,
+            },
+            sk
+          );
+
+          await Promise.any(pool.publish(RELAYS, event));
+
+          console.log("Published event:", event.id);
+        } catch (e) {
+          console.error("Failed to publish:", e);
+          alert(
+            "Failed to publish to Nostr relays. Check console for details."
+          );
+        }
+      };
+
 
       window.postToNostr = async function (textareaId, expectedType) {
         const textarea = document.getElementById(textareaId);
