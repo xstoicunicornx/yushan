@@ -135,23 +135,7 @@
         <!-- Sign -->
         <div class="command-section">
           <div class="command-title">Create Signature Share</div>
-          <div class="form-group">
-            <label>Session ID:</label>
-            <input type="text" id="sign-session" value="msg1" />
-          </div>
-          <div class="form-group">
-            <label>Message to sign:</label>
-            <input type="text" id="sign-message" value="Hello FROST!" />
-          </div>
-          <div class="form-group">
-            <label>Paste nonces and group key (space-separated JSON):</label>
-            <textarea
-              id="sign-data"
-              placeholder='{"party_index": 1, ...} {"party_index": 2, ...}'
-            ></textarea>
-          </div>
-          <button onclick="runSign()">Create Signature Share</button>
-          <div id="sign-output" class="output-section hidden"></div>
+          <div id="ss-output" class="output-section hidden"></div>
         </div>
 
         <!-- Combine -->
@@ -210,7 +194,6 @@
           // Parse the JSON response with output and result fields
           const response = JSON.parse(responseJson);
 
-          console.log('showoutput', response, response.result, elementId)
           // Create formatted display
           let html = '<div class="output-container">';
 
@@ -268,7 +251,9 @@
         keygen_finalized: new Map(),
         signing_message_request: new Map(),
         signing_nonce: new Map(),
+        signing_nonce_ready: new Map(),
         signing_share: new Map(),
+        signing_share_ready: new Map(),
       };
 
       // Subscribe to Nostr events for the current room
@@ -350,7 +335,6 @@
       function processEvent(data, nostrEvent) {
         const eventType = data.type;
         const partyIndex = data.party_index;
-        console.log('processEvent', data, nostrEvent, eventType, partyIndex,eventType === 'signing_message_request')
 
         if (!phaseData[eventType]) {
           console.warn("Unknown event type:", eventType);
@@ -364,24 +348,30 @@
         }
 
         if (eventType === 'config_announcement') {
-          console.log('config_announcement', data, nostrEvent)
           keygenRound1(data)
         }
 
         if (eventType === 'keygen_round1_ready') {
-          console.log('keygen_round1_ready', data, nostrEvent)
           keygenRound2(data.result)
         }
 
         if (eventType === 'keygen_round2_ready') {
-          console.log('keygen_round2_ready', data, nostrEvent)
           keygenFinalize(data.result)
         }
         
         if (eventType === 'signing_message_request') {
-          console.log('signing_message_request', data, nostrEvent)
           signingNonceGen(data)
         }
+
+        if (eventType === 'signing_nonce_ready') {
+          signingSigGen(data.result)
+        }
+
+        if (eventType === 'signing_share_ready') {
+          console.log('signing_share_ready', data, nostrEvent)
+          signingCombinedGen(data.result)
+        }
+
         phaseData[eventType].set(partyIndex, {
           ...data,
           created_at: nostrEvent.created_at,
@@ -415,7 +405,6 @@
       function keygenFinalize(data) {
         // document.getElementById("kgf-data").value = data
         const result = wasm_keygen_finalize(data);
-        console.log('keygenFinalize', result, data)
         showOutput("kgf-output", result);
 
         const myIndex = parseInt(document.getElementById("my-index").value)
@@ -436,6 +425,25 @@
         const result = wasm_generate_nonce(sessionId);
         showOutput("sn-output", result);
         postToNostr(JSON.parse(result).result)
+      }
+
+      function signingSigGen(data) {
+        const sessionId = document.getElementById('sm-session').value
+        const message = document.getElementById('sm-message').value
+        const result = wasm_sign(sessionId, message, data)
+        showOutput('ss-output', result)
+        postToNostr(JSON.parse(result).result)
+      }
+
+      function signingCombinedGen(data) {
+        console.log('signingCombineGen', data)
+        const party_index = parseInt(document.getElementById("my-index").value)
+        const combinedJson = {party_index, "type":"signing_combine"}
+        const result = wasm_combine(data)
+        console.log('signingCombineGen', data, result)
+        showOutput('combine-output', result)
+        combinedJson.result = JSON.parse(result).result
+        postToNostr(JSON.stringify(combinedJson))
       }
       
       function refreshUI() {
