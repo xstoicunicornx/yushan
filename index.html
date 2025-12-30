@@ -216,27 +216,6 @@
           <div class="phase-count" id="sig-count">0 / 0</div>
         </div>
 
-        <div class="post-box">
-          <div class="post-label">
-            Run:
-            <code
-              >yushan sign --session "msg1" --message "Hello!" --data
-              '&lt;all-nonces&gt;'</code
-            >
-          </div>
-          <textarea
-            class="post-textarea"
-            id="sig-input"
-            placeholder='Paste your sign JSON output here, e.g.: {"party_index": 1, "session": "msg1", "signature_share": "hex...", "type": "signing_share"}'
-          ></textarea>
-          <button
-            class="btn"
-            onclick="postMessageToNostr()"
-          >
-            Broadcast
-          </button>
-        </div>
-
         <div class="entries-container" id="sig-entries">
           <div class="empty-state">
             Waiting for signers to post signature shares...
@@ -248,6 +227,30 @@
           <button
             class="btn btn-secondary"
             onclick="copyToClipboard('sig-output')"
+          >
+            Copy All
+          </button>
+        </div>
+      </div>
+
+      <!-- Combine Signatures -->
+      <div class="phase-section">
+        <div class="phase-header">
+          <div class="phase-title">Signing: Signatures</div>
+          <div class="phase-count" id="combine-count">0 / 0</div>
+        </div>
+
+        <div class="entries-container" id="combine-entries">
+          <div class="empty-state">
+            Waiting for signers to post signatures...
+          </div>
+        </div>
+        <div class="copy-section" id="combine-copy-section">
+          <div class="copy-label">Session Signatures</div>
+          <div class="copy-output" id="combine-output">No data yet</div>
+          <button
+            class="btn btn-secondary"
+            onclick="copyToClipboard('combine-output')"
           >
             Copy All
           </button>
@@ -360,7 +363,9 @@
         keygen_round2_ready: new Array(),
         keygen_finalized: new Map(),
         signing_nonce: new Map(),
+        signing_nonce_ready: new Map(),
         signing_share: new Map(),
+        signing_combine: new Map(),
       };
 
       // Subscribe to Nostr events for the current room
@@ -420,7 +425,7 @@
                 const data = JSON.parse(event.content);
                 processEvent(data, event);
               } catch (e) {
-                console.error("Failed to parse event:", e);
+                console.error("Failed to parse event:", e, event);
               }
             },
             oneose() {
@@ -478,6 +483,7 @@
         updatePhaseUI("keygen_finalized", "finalized", nParties);
         updatePhaseUI("signing_nonce", "nonce", threshold);
         updatePhaseUI("signing_share", "sig", threshold);
+        updatePhaseUI("signing_combine", "combine", threshold);
       }
 
       function updatePhaseUI(phaseKey, uiPrefix, expectedCount) {
@@ -509,7 +515,6 @@
           const sortedEntries = Array.from(data.values()).sort(
             (a, b) => a.party_index - b.party_index
           );
-          console.log('updatephaseui',phaseKey, sortedEntries)
 
           sortedEntries.forEach((entry) => {
             const entryDiv = document.createElement("div");
@@ -544,7 +549,6 @@
             });
 
           if (outputEl) outputEl.textContent = jsonObjects.join(" ")
-          console.log('updateui', jsonObjects,phaseKey, uiPrefix, expectedCount)
           if (phaseKey !== 'keygen_finalized') postReadyToNostr(phaseKey)
         } else {
           if (copySectionEl) copySectionEl.style.display = "none";
@@ -628,7 +632,6 @@
         const content = {type: phaseKey + '_ready'}
         const jsonObjects = Array.from(phaseData[phaseKey].values())
         content.result = jsonObjects.map(e => JSON.stringify(e)).join(" ")
-        console.log('postReadyto nostr', Array.from(phaseData[phaseKey].values()), content)
 
         // Create and publish Nostr event
         try {
@@ -660,7 +663,6 @@
           message: textarea.value.trim(),
           session_id: 'msg1'
         });
-        console.log('postMessageToNostr', content)
         
         // Create and publish Nostr event
         try {
